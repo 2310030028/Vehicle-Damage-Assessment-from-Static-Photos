@@ -20,24 +20,37 @@ class CarDamageDetector:
 
     def _load_model(self, model_path: str = None) -> YOLO:
         try:
-            # Add safe globals for PyTorch 2.6+ compatibility
-            import torch.serialization
+            # Set up PyTorch to allow loading the model
+            import torch
             torch.serialization.add_safe_globals([torch.serialization._get_restore_location])
             
-            # Load with explicit weights_only=False for compatibility
+            # Load the model
             if model_path and os.path.exists(model_path):
                 return YOLO(model_path, verbose=False)
             return YOLO('yolov8n.pt', verbose=False)
+            
         except Exception as e:
             print(f"Error loading model: {e}")
-            # Try with explicit weights_only=False as fallback
+            # Try with a different approach if the first one fails
             try:
-                if model_path and os.path.exists(model_path):
-                    return YOLO(model_path, verbose=False, weights_only=False)
-                return YOLO('yolov8n.pt', verbose=False, weights_only=False)
+                from ultralytics.utils.downloads import attempt_download
+                
+                # Ensure the model file is downloaded
+                model_file = attempt_download('yolov8n.pt')
+                return YOLO(model_file, verbose=False)
+                
             except Exception as e2:
                 print(f"Fallback loading failed: {e2}")
-                raise
+                # As a last resort, try with safe loading disabled
+                try:
+                    import torch
+                    torch.backends.cudnn.benchmark = True
+                    if model_path and os.path.exists(model_path):
+                        return YOLO(model_path, verbose=False)
+                    return YOLO('yolov8n.pt', verbose=False)
+                except Exception as e3:
+                    print(f"Final loading attempt failed: {e3}")
+                    raise RuntimeError("Failed to load the model after multiple attempts. Please check the logs for details.")
 
     def _preprocess_image(self, image: np.ndarray) -> np.ndarray:
         # Convert to grayscale
