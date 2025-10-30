@@ -126,7 +126,7 @@ def main():
                 st.image(
                     st.session_state.result_image, 
                     caption='Damage Detection Result', 
-                    use_container_width=True
+                    use_column_width=True
                 )
                 
                 # Add mouse hover effect using HTML/JS
@@ -325,8 +325,8 @@ def main():
                 <div style="display: flex; justify-content: space-between; font-size: 1.1rem; font-weight: bold; padding: 0.5rem 0;">
                     <span>Total Estimated Cost:</span>
                     <span>${total_cost:,}</span>
-                </div>
-            """, unsafe_allow_html=True)
+                        </div>
+                    """, unsafe_allow_html=True)
         else:
             st.success("✅ No damage detected in the image.")
             st.balloons()

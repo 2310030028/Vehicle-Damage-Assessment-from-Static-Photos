@@ -20,37 +20,38 @@ class CarDamageDetector:
 
     def _load_model(self, model_path: str = None) -> YOLO:
         try:
-            # Set up PyTorch to allow loading the model
+            # Set up PyTorch
             import torch
-            torch.serialization.add_safe_globals([torch.serialization._get_restore_location])
+            torch.backends.cudnn.benchmark = True
             
-            # Load the model
+            # Load the model with basic configuration
             if model_path and os.path.exists(model_path):
                 return YOLO(model_path, verbose=False)
+                
+            # For YOLO model, let it handle the download
             return YOLO('yolov8n.pt', verbose=False)
             
         except Exception as e:
             print(f"Error loading model: {e}")
             # Try with a different approach if the first one fails
             try:
+                # Force download the model first
                 from ultralytics.utils.downloads import attempt_download
-                
-                # Ensure the model file is downloaded
                 model_file = attempt_download('yolov8n.pt')
                 return YOLO(model_file, verbose=False)
                 
             except Exception as e2:
                 print(f"Fallback loading failed: {e2}")
-                # As a last resort, try with safe loading disabled
+                # Final attempt with minimal configuration
                 try:
-                    import torch
-                    torch.backends.cudnn.benchmark = True
-                    if model_path and os.path.exists(model_path):
-                        return YOLO(model_path, verbose=False)
                     return YOLO('yolov8n.pt', verbose=False)
                 except Exception as e3:
                     print(f"Final loading attempt failed: {e3}")
-                    raise RuntimeError("Failed to load the model after multiple attempts. Please check the logs for details.")
+                    raise RuntimeError(
+                        "Failed to load the model. "
+                        "This might be due to compatibility issues or missing dependencies. "
+                        "Please ensure you have the correct PyTorch and CUDA versions installed."
+                    )
 
     def _preprocess_image(self, image: np.ndarray) -> np.ndarray:
         # Convert to grayscale
