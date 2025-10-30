@@ -20,12 +20,24 @@ class CarDamageDetector:
 
     def _load_model(self, model_path: str = None) -> YOLO:
         try:
+            # Add safe globals for PyTorch 2.6+ compatibility
+            import torch.serialization
+            torch.serialization.add_safe_globals([torch.serialization._get_restore_location])
+            
+            # Load with explicit weights_only=False for compatibility
             if model_path and os.path.exists(model_path):
-                return YOLO(model_path)
-            return YOLO('yolov8n.pt')
+                return YOLO(model_path, verbose=False)
+            return YOLO('yolov8n.pt', verbose=False)
         except Exception as e:
             print(f"Error loading model: {e}")
-            return YOLO('yolov8n.pt')
+            # Try with explicit weights_only=False as fallback
+            try:
+                if model_path and os.path.exists(model_path):
+                    return YOLO(model_path, verbose=False, weights_only=False)
+                return YOLO('yolov8n.pt', verbose=False, weights_only=False)
+            except Exception as e2:
+                print(f"Fallback loading failed: {e2}")
+                raise
 
     def _preprocess_image(self, image: np.ndarray) -> np.ndarray:
         # Convert to grayscale
